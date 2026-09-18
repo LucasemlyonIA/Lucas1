@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculateur de coûts – Microsoft Copilot Studio</title>
+<style>
+  :root{
+    --bg:#f4f6fb;
+    --panel:#ffffff;
+    --panel-alt:#f8f9fc;
+    --border:#dfe3ee;
+    --text:#1c2333;
+    --muted:#5b6478;
+    --primary:#4f46e5;
+    --primary-dark:#3730a3;
+    --danger:#dc2626;
+    --danger-bg:#fee2e2;
+    --warn:#b45309;
+    --warn-bg:#fef3c7;
+    --ok:#047857;
+    --ok-bg:#d1fae5;
+    --shadow: 0 2px 10px rgba(20,25,50,.06);
+    --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: 'Segoe UI', Roboto, -apple-system, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding-bottom:120px;
+  }
+  header.top{
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    color:#fff;
+    padding:20px 16px 26px;
+  }
+  header.top h1{
+    margin:0 0 4px;
+    font-size:1.4rem;
+  }
+  header.top p{
+    margin:0;
+    opacity:.9;
+    font-size:.9rem;
+    max-width:820px;
+  }
+  .container{
+    max-width:1100px;
+    margin:0 auto;
+    padding:0 16px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    margin-top:18px;
+  }
+  .settings-panel{
+    padding:16px 18px 18px;
+  }
+  .settings-panel h2, .section h2{
+    font-size:1.05rem;
+    margin:0 0 10px;
+  }
+  .settings-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    gap:12px 16px;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .field label{
+    font-size:.82rem;
+    font-weight:600;
+    color:var(--muted);
+    display:flex;
+    align-items:center;
+    gap:5px;
+  }
+  .field input[type=number], .field input[type=text], .field select{
+    padding:7px 9px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:.92rem;
+    background:#fff;
+    color:var(--text);
+    width:100%;
+  }
+  .field input:focus, .field select:focus{
+    outline:2px solid var(--primary);
+    outline-offset:1px;
+  }
+  .checkbox-field{
+    flex-direction:row;
+    align-items:center;
+    gap:8px;
+  }
+  .checkbox-field label{
+    font-weight:600;
+    color:var(--text);
+    font-size:.88rem;
+  }
+  .checkbox-field input{
+    width:17px;height:17px;
+  }
+  /* tooltip */
+  .tip{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:16px;height:16px;
+    border-radius:50%;
+    background:var(--primary);
+    color:#fff;
+    font-size:.68rem;
+    font-weight:700;
+    cursor:help;
+    position:relative;
+    flex:none;
+  }
+  .tip:hover::after, .tip:focus::after{
+    content: attr(data-tip);
+    position:absolute;
+    left:50%;
+    bottom:135%;
+    transform:translateX(-50%);
+    background:#1c2333;
+    color:#fff;
+    padding:8px 10px;
+    border-radius:8px;
+    font-size:.75rem;
+    font-weight:400;
+    line-height:1.35;
+    width:240px;
+    max-width:60vw;
+    box-shadow:0 6px 18px rgba(0,0,0,.25);
+    z-index:50;
+    white-space:normal;
+    text-align:left;
+  }
+  .tip:hover::before, .tip:focus::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    bottom:118%;
+    transform:translateX(-50%);
+    border:6px solid transparent;
+    border-top-color:#1c2333;
+    z-index:50;
+  }
+
+  /* top action bar */
+  .top-actions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-top:18px;
+    align-items:center;
+  }
+  button{
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    border-radius:8px;
+    padding:9px 14px;
+    font-size:.88rem;
+    font-weight:600;
+  }
+  .btn-primary{ background:var(--primary); color:#fff; }
+  .btn-primary:hover{ background:var(--primary-dark); }
+  .btn-secondary{ background:#eef0fb; color:var(--primary-dark); }
+  .btn-secondary:hover{ background:#e0e3fb; }
+  .btn-ghost{ background:transparent; color:var(--muted); border:1px solid var(--border); }
+  .btn-ghost:hover{ background:var(--panel-alt); }
+  .btn-danger{ background:var(--danger-bg); color:var(--danger); }
+  .btn-danger:hover{ background:#fecaca; }
+  .btn-sm{ padding:6px 10px; font-size:.78rem; }
+
+  /* agent card */
+  .agent-card{
+    margin-top:16px;
+  }
+  .agent-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:14px 16px;
+    flex-wrap:wrap;
+  }
+  .agent-head .name-input{
+    font-size:1.02rem;
+    font-weight:700;
+    border:1px solid transparent;
+    background:transparent;
+    padding:4px 6px;
+    border-radius:6px;
+    flex:1 1 220px;
+    min-width:160px;
+    color:var(--text);
+  }
+  .agent-head .name-input:hover, .agent-head .name-input:focus{
+    border-color:var(--border);
+    background:#fff;
+  }
+  .agent-badges{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .badge{
+    background:var(--panel-alt);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:5px 12px;
+    font-size:.78rem;
+    color:var(--muted);
+    white-space:nowrap;
+  }
+  .badge b{ color:var(--text); }
+  .agent-actions{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .collapse-toggle{
+    background:transparent;
+    border:1px solid var(--border);
+    width:30px;height:30px;
+    border-radius:8px;
+    font-size:1rem;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--muted);
+  }
+  .agent-body{
+    padding:0 16px 18px;
+    border-top:1px solid var(--border);
+  }
+  .agent-body.hidden{ display:none; }
+  .section{
+    margin-top:16px;
+    padding-top:12px;
+  }
+  .section:first-child{ margin-top:14px; }
+  .section-title{
+    font-size:.82rem;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--primary-dark);
+    font-weight:700;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .category-block{
+    background:var(--panel-alt);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:10px;
+  }
+  .category-block h4{
+    margin:0 0 8px;
+    font-size:.85rem;
+    color:var(--text);
+  }
+  .grid3{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:10px 14px;
+  }
+  .grid2{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:10px 14px;
+  }
+  .conditional-block{
+    margin-top:8px;
+    padding:10px;
+    border-left:3px solid var(--primary);
+    background:#f4f3ff;
+    border-radius:0 8px 8px 0;
+  }
+  .conditional-block.hidden{ display:none; }
+  .note{
+    font-size:.78rem;
+    color:var(--muted);
+    margin-top:4px;
+  }
+  .subtotal-row{
+    display:flex;
+    gap:18px;
+    flex-wrap:wrap;
+    margin-top:14px;
+    padding:10px 12px;
+    background:#eef0fb;
+    border-radius:10px;
+    font-size:.85rem;
+  }
+  .subtotal-row div b{ display:block; font-size:1.05rem; color:var(--primary-dark); }
+
+  /* summary */
+  .summary-section{
+    margin-top:26px;
+    padding:18px;
+  }
+  table.summary-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:12px;
+    font-size:.88rem;
+  }
+  table.summary-table th, table.summary-table td{
+    text-align:left;
+    padding:8px 10px;
+    border-bottom:1px solid var(--border);
+  }
+  table.summary-table th{
+    color:var(--muted);
+    font-size:.75rem;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  table.summary-table tr:last-child td{ font-weight:700; border-bottom:none; border-top:2px solid var(--border); }
+  .totals-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:12px;
+    margin-top:16px;
+  }
+  .total-box{
+    background:var(--panel-alt);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px 14px;
+  }
+  .total-box .lbl{
+    font-size:.76rem;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  .total-box .val{
+    font-size:1.25rem;
+    font-weight:700;
+    margin-top:4px;
+    color:var(--text);
+  }
+  .total-box.highlight{
+    background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+    border:none;
+  }
+  .total-box.highlight .lbl{ color:rgba(255,255,255,.8); }
+  .total-box.highlight .val{ color:#fff; }
+  .warning-banner{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:10px;
+    background:var(--warn-bg);
+    color:var(--warn);
+    font-size:.85rem;
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+  }
+  .ok-banner{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:10px;
+    background:var(--ok-bg);
+    color:var(--ok);
+    font-size:.85rem;
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+  }
+  .progress-wrap{
+    margin-top:10px;
+    background:#e5e7f5;
+    border-radius:20px;
+    height:14px;
+    overflow:hidden;
+    position:relative;
+  }
+  .progress-bar{
+    height:100%;
+    background:linear-gradient(90deg,var(--primary),var(--primary-dark));
+    transition:width .25s ease;
+  }
+  .progress-bar.over{ background:linear-gradient(90deg,#dc2626,#991b1b); }
+
+  /* sticky footer bar */
+  .sticky-bar{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    background:#161a2b;
+    color:#fff;
+    padding:10px 16px;
+    display:flex;
+    gap:18px;
+    align-items:center;
+    flex-wrap:wrap;
+    z-index:40;
+    box-shadow:0 -4px 16px rgba(0,0,0,.25);
+  }
+  .sticky-bar .item{
+    font-size:.78rem;
+    color:#c7cbe0;
+    white-space:nowrap;
+  }
+  .sticky-bar .item b{
+    display:block;
+    font-size:1rem;
+    color:#fff;
+  }
+  .sticky-bar .spacer{ flex:1; }
+  .sticky-bar button{ background:#fff; color:var(--primary-dark); }
+
+  footer.credits{
+    text-align:center;
+    color:var(--muted);
+    font-size:.75rem;
+    margin:30px 0 10px;
+  }
+
+  @media (max-width:640px){
+    header.top h1{ font-size:1.15rem; }
+    .agent-head{ padding:12px; }
+    .sticky-bar{ font-size:.75rem; gap:10px; }
+    .sticky-bar .item b{ font-size:.9rem; }
+    .settings-grid, .grid3, .grid2{ grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width:420px){
+    .settings-grid, .grid3, .grid2{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="container">
+    <h1>Calculateur de coûts – Microsoft Copilot Studio</h1>
+    <p>Estimation du coût mensuel total de déploiement de plusieurs agents, en mode <b>capacity pack prépayé</b> (200&nbsp;$ / 25&nbsp;000 Copilot Credits), avec le pay-as-you-go en option de secours pour le dépassement.</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Paramètres globaux -->
+  <div class="card settings-panel">
+    <h2>⚙️ Paramètres &amp; tarifs (modifiables)</h2>
+    <div class="settings-grid">
+      <div class="field">
+        <label>Devise d'affichage</label>
+        <select id="set-currency">
+          <option value="USD">$ (USD)</option>
+          <option value="EUR">€ (EUR)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Prix d'un capacity pack <span class="tip" tabindex="0" data-tip="Prix mensuel prépayé d'un pack de capacité Copilot Studio. Valeur standard Microsoft : 200 $ pour 25 000 Copilot Credits.">?</span></label>
+        <input type="number" id="set-packPrice" min="0" step="1">
+      </div>
+      <div class="field">
+        <label>Crédits inclus par pack <span class="tip" tabindex="0" data-tip="Nombre de Copilot Credits inclus dans un capacity pack prépayé. Valeur standard : 25 000.">?</span></label>
+        <input type="number" id="set-creditsPerPack" min="1" step="100">
+      </div>
+      <div class="field">
+        <label>Tarif PAYG par crédit <span class="tip" tabindex="0" data-tip="Coût d'un Copilot Credit consommé au-delà des packs prépayés, en mode pay-as-you-go. Valeur standard : 0,01 $/crédit.">?</span></label>
+        <input type="number" id="set-paygRate" min="0" step="0.001">
+      </div>
+      <div class="field">
+        <label>Quota Dataverse gratuit (Go) <span class="tip" tabindex="0" data-tip="Quota de stockage Dataverse inclus gratuitement au niveau du tenant, partagé entre tous les agents. Valeur standard : 15 Go.">?</span></label>
+        <input type="number" id="set-dataverseFreeGB" min="0" step="1">
+      </div>
+      <div class="field">
+        <label>Coût add-on Dataverse (par Go) <span class="tip" tabindex="0" data-tip="Coût mensuel de l'add-on de stockage Dataverse au-delà du quota gratuit partagé, par Go et par mois.">?</span></label>
+        <input type="number" id="set-dataverseCostPerGB" min="0" step="0.5">
+      </div>
+      <div class="field">
+        <label>Coût par run Power Automate <span class="tip" tabindex="0" data-tip="Coût unitaire estimé d'un run Power Automate déclenché par un agent, selon la licence Power Automate de l'organisation (peut être 0 si couvert par un plan existant).">?</span></label>
+        <input type="number" id="set-paCostPerRun" min="0" step="0.001">
+      </div>
+    </div>
+
+    <details style="margin-top:14px;">
+      <summary style="cursor:pointer;font-size:.85rem;color:var(--muted);font-weight:600;">Paramètres avancés – pondération des crédits par type d'interaction</summary>
+      <div class="settings-grid" style="margin-top:12px;">
+        <div class="field">
+          <label>Crédits / réponse classique <span class="tip" tabindex="0" data-tip="Coût en Copilot Credits d'une réponse classique/statique (flux prédéfini ou FAQ statique). Valeur standard : 1.">?</span></label>
+          <input type="number" id="set-wStatic" min="0" step="0.5">
+        </div>
+        <div class="field">
+          <label>Crédits / réponse générative <span class="tip" tabindex="0" data-tip="Coût en Copilot Credits d'une réponse générative composée par un modèle de langage. Valeur standard : 2.">?</span></label>
+          <input type="number" id="set-wGenerative" min="0" step="0.5">
+        </div>
+        <div class="field">
+          <label>Crédits / action autonome <span class="tip" tabindex="0" data-tip="Coût en Copilot Credits d'une action autonome (connecteur Power Platform, flux Power Automate déclenché par l'agent). Valeur standard : 25. Toujours facturées, même pour les utilisateurs licenciés M365 Copilot.">?</span></label>
+          <input type="number" id="set-wAction" min="0" step="1">
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div class="top-actions">
+    <button class="btn-primary" id="btn-add-agent">+ Ajouter un cas d'usage</button>
+    <button class="btn-secondary" id="btn-export">⭳ Exporter (JSON)</button>
+    <label class="btn-secondary btn-sm" style="display:inline-flex;align-items:center;cursor:pointer;">
+      ⭱ Importer
+      <input type="file" id="import-file" accept="application/json" style="display:none;">
+    </label>
+    <button class="btn-ghost" id="btn-reset">↺ Réinitialiser</button>
+    <span class="note" id="save-indicator" style="margin-left:auto;"></span>
+  </div>
+
+  <div id="agents-container"></div>
+
+  <!-- Récapitulatif global -->
+  <div class="card summary-section" id="summary-section">
+    <h2 style="margin-top:0;">📊 Récapitulatif global</h2>
+
+    <div class="field" style="max-width:280px;">
+      <label>Nombre de packs souscrits <span class="tip" tabindex="0" data-tip="Nombre de capacity packs réellement achetés/prévus ce mois. Par défaut égal au nombre recommandé (arrondi au supérieur des crédits totaux ÷ crédits par pack), mais modifiable pour simuler un scénario de dépassement.">?</span></label>
+      <input type="number" id="set-packsPurchased" min="0" step="1">
+    </div>
+    <div class="note" id="packs-recommended-note"></div>
+
+    <table class="summary-table">
+      <thead>
+        <tr><th>Agent</th><th>Crédits / mois</th><th>% du total</th><th>Coût estimé</th></tr>
+      </thead>
+      <tbody id="summary-tbody"></tbody>
+    </table>
+    <p class="note">Le coût par agent est calculé au tarif moyen du pack ($/crédit) additionné de ses coûts directs (Azure OpenAI, Power Automate, connecteurs premium). Il n'inclut ni le partage du quota Dataverse ni l'effet d'arrondi/dépassement des packs, contrairement au total global ci-dessous.</p>
+
+    <div id="warning-zone"></div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar" id="usage-progress"></div>
+    </div>
+    <p class="note" id="usage-progress-label"></p>
+
+    <div class="totals-grid">
+      <div class="total-box">
+        <div class="lbl">Crédits totaux / mois</div>
+        <div class="val" id="tot-credits">–</div>
+      </div>
+      <div class="total-box">
+        <div class="lbl">Packs recommandés</div>
+        <div class="val" id="tot-packs-reco">–</div>
+      </div>
+      <div class="total-box">
+        <div class="lbl">Coût packs prépayés</div>
+        <div class="val" id="tot-prepaid">–</div>
+      </div>
+      <div class="total-box">
+        <div class="lbl">Dépassement (crédits)</div>
+        <div class="val" id="tot-overage-credits">–</div>
+      </div>
+      <div class="total-box">
+        <div class="lbl">Coût dépassement PAYG</div>
+        <div class="val" id="tot-overage-cost">–</div>
+      </div>
+      <div class="total-box">
+        <div class="lbl">Add-on Dataverse</div>
+        <div class="val" id="tot-dataverse">–</div>
+      </div>
+      <div class="total-box">
+        <div class="lbl">Azure OpenAI custom</div>
+        <div class="val" id="tot-openai">–</div>
+      </div>
+      <div class="total-box">
+        <div class="lbl">Power Automate + connecteurs</div>
+        <div class="val" id="tot-pa">–</div>
+      </div>
+      <div class="total-box highlight">
+        <div class="lbl">Coût total mensuel</div>
+        <div class="val" id="tot-grand">–</div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="credits">Calculateur indépendant, non affilié à Microsoft. Les tarifs par défaut (200 $/pack, 25 000 crédits, 0,01 $/crédit PAYG) reflètent le modèle capacity pack Copilot Studio publié par Microsoft et doivent être vérifiés/mis à jour selon votre contrat.</footer>
+</div>
+
+<div class="sticky-bar">
+  <div class="item">Crédits utilisés<b id="bar-credits">–</b></div>
+  <div class="item">Utilisation<b id="bar-util">–</b></div>
+  <div class="item">Packs<b id="bar-packs">–</b></div>
+  <div class="spacer"></div>
+  <div class="item">Coût total mensuel<b id="bar-total">–</b></div>
+  <button class="btn-sm" onclick="document.getElementById('summary-section').scrollIntoView({behavior:'smooth'})">Détails ↓</button>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+const STORAGE_KEY = "copilotStudioCostCalculator.v1";
+
+function uid(){ return 'a' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+
+function defaultAgent(name, overrides){
+  const base = {
+    id: uid(),
+    name: name,
+    collapsed: false,
+    users: { licensed: 0, unlicensed: 0, external: 0 },
+    freq: {
+      licensed:   { conv: 0, turns: 3 },
+      unlicensed: { conv: 0, turns: 3 },
+      external:   { conv: 0, turns: 3 }
+    },
+    composition: {
+      pctStatic: 50,
+      pctGenerative: 50,
+      actionsPerInteraction: 0,
+      groundingEnabled: false,
+      groundingCredits: 30
+    },
+    dataverseGB: 0,
+    aiBuilder: false,
+    azureOpenAI: { enabled: false, tokens: 0, cost: 0 },
+    powerAutomate: { runs: 0 },
+    premiumConnectors: { enabled: false, extraCost: 0 }
+  };
+  return Object.assign(base, overrides || {});
+}
+
+function defaultState(){
+  return {
+    settings: {
+      currency: "USD",
+      packPrice: 200,
+      creditsPerPack: 25000,
+      paygRate: 0.01,
+      dataverseFreeGB: 15,
+      dataverseCostPerGB: 40.94,
+      paCostPerRun: 0,
+      weights: { static: 1, generative: 2, action: 25 },
+      packsPurchased: null // null = auto (recommandé)
+    },
+    agents: [
+      defaultAgent("Chatbot RH interne", {
+        users: { licensed: 150, unlicensed: 50, external: 0 },
+        freq: {
+          licensed:   { conv: 4, turns: 3 },
+          unlicensed: { conv: 6, turns: 4 },
+          external:   { conv: 0, turns: 0 }
+        },
+        composition: { pctStatic: 40, pctGenerative: 60, actionsPerInteraction: 0.3, groundingEnabled: true, groundingCredits: 30 },
+        dataverseGB: 2,
+        aiBuilder: false,
+        azureOpenAI: { enabled: false, tokens: 0, cost: 0 },
+        powerAutomate: { runs: 200 },
+        premiumConnectors: { enabled: false, extraCost: 0 }
+      }),
+      defaultAgent("Agent support client site web", {
+        users: { licensed: 0, unlicensed: 0, external: 5000 },
+        freq: {
+          licensed:   { conv: 0, turns: 0 },
+          unlicensed: { conv: 0, turns: 0 },
+          external:   { conv: 1.2, turns: 4 }
+        },
+        composition: { pctStatic: 55, pctGenerative: 45, actionsPerInteraction: 0.1, groundingEnabled: true, groundingCredits: 30 },
+        dataverseGB: 5,
+        aiBuilder: false,
+        azureOpenAI: { enabled: false, tokens: 0, cost: 0 },
+        powerAutomate: { runs: 50 },
+        premiumConnectors: { enabled: true, extraCost: 15 }
+      })
+    ]
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && parsed.settings && Array.isArray(parsed.agents)) return parsed;
+    }
+  }catch(e){ console.warn("localStorage indisponible ou corrompu, valeurs par défaut utilisées.", e); }
+  return defaultState();
+}
+
+let state = loadState();
+let saveTimer = null;
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  const ind = document.getElementById('save-indicator');
+  if(ind) ind.textContent = "Enregistrement…";
+  saveTimer = setTimeout(()=>{
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      if(ind){
+        ind.textContent = "✓ Sauvegardé localement " + new Date().toLocaleTimeString('fr-FR');
+      }
+    }catch(e){
+      if(ind) ind.textContent = "⚠ Sauvegarde locale impossible";
+    }
+  }, 350);
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+function fmtCredits(n){
+  return Math.round(n).toLocaleString('fr-FR');
+}
+function currencySymbol(){ return state.settings.currency === 'EUR' ? '€' : '$'; }
+function fmtMoney(n){
+  const sym = currencySymbol();
+  const val = (Math.round((n + Number.EPSILON) * 100) / 100).toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return sym === '€' ? (val + ' €') : ('$' + val);
+}
+function fmtPct(n){
+  return (Math.round(n*10)/10).toLocaleString('fr-FR') + ' %';
+}
+
+// ---------- Calcul métier ----------
+
+function computeAgentCredits(agent, weights){
+  const categories = ['licensed','unlicensed','external'];
+  let totalCredits = 0;
+  const breakdown = {};
+  categories.forEach(cat=>{
+    const u = num(agent.users[cat]);
+    const conv = num(agent.freq[cat].conv);
+    const turns = num(agent.freq[cat].turns);
+    const totalTurns = u * conv * turns;
+    const billableInteractive = cat !== 'licensed'; // licence M365 Copilot = usage interactif inclus
+
+    const staticCred = totalTurns * (num(agent.composition.pctStatic)/100) * weights.static;
+    const genCred = totalTurns * (num(agent.composition.pctGenerative)/100) * weights.generative;
+    const groundCred = agent.composition.groundingEnabled
+      ? totalTurns * (num(agent.composition.pctGenerative)/100) * num(agent.composition.groundingCredits)
+      : 0;
+    const actionCred = totalTurns * num(agent.composition.actionsPerInteraction) * weights.action; // toujours facturé
+
+    const catCredits = actionCred + (billableInteractive ? (staticCred + genCred + groundCred) : 0);
+    totalCredits += catCredits;
+    breakdown[cat] = { totalTurns, staticCred, genCred, groundCred, actionCred, catCredits, billableInteractive };
+  });
+  return { totalCredits, breakdown };
+}
+
+function computeAgentDirectCosts(agent, settings){
+  const azureOpenAICost = agent.azureOpenAI.enabled ? num(agent.azureOpenAI.cost) : 0;
+  const powerAutomateCost = num(agent.powerAutomate.runs) * num(settings.paCostPerRun);
+  const premiumConnectorCost = agent.premiumConnectors.enabled ? num(agent.premiumConnectors.extraCost) : 0;
+  return { azureOpenAICost, powerAutomateCost, premiumConnectorCost };
+}
+
+function computeAgentFull(agent, settings){
+  const { totalCredits, breakdown } = computeAgentCredits(agent, settings.weights);
+  const direct = computeAgentDirectCosts(agent, settings);
+  const blendedRate = settings.creditsPerPack > 0 ? (num(settings.packPrice) / num(settings.creditsPerPack)) : 0;
+  const creditCost = totalCredits * blendedRate;
+  const totalCost = creditCost + direct.azureOpenAICost + direct.powerAutomateCost + direct.premiumConnectorCost;
+  return { totalCredits, breakdown, direct, creditCost, totalCost };
+}
+
+function computeGlobal(){
+  const settings = state.settings;
+  const perAgent = state.agents.map(a => ({ agent: a, calc: computeAgentFull(a, settings) }));
+
+  const totalCredits = perAgent.reduce((s,x)=>s + x.calc.totalCredits, 0);
+  const totalGB = state.agents.reduce((s,a)=>s + num(a.dataverseGB), 0);
+  const freeGB = num(settings.dataverseFreeGB);
+  const billableGB = Math.max(0, totalGB - freeGB);
+  const dataverseAddonCost = billableGB * num(settings.dataverseCostPerGB);
+
+  const packsRecommended = settings.creditsPerPack > 0 ? Math.ceil(totalCredits / settings.creditsPerPack) : 0;
+  const packsPurchased = (settings.packsPurchased === null || settings.packsPurchased === undefined || settings.packsPurchased === '')
+    ? packsRecommended
+    : Math.max(0, Math.round(num(settings.packsPurchased)));
+
+  const purchasedCapacity = packsPurchased * num(settings.creditsPerPack);
+  const overageCredits = Math.max(0, totalCredits - purchasedCapacity);
+  const overageCost = overageCredits * num(settings.paygRate);
+  const prepaidCost = packsPurchased * num(settings.packPrice);
+  const utilizationPct = purchasedCapacity > 0 ? (Math.min(totalCredits, purchasedCapacity) / purchasedCapacity * 100) : (totalCredits > 0 ? 100 : 0);
+
+  const azureOpenAITotal = perAgent.reduce((s,x)=>s + x.calc.direct.azureOpenAICost, 0);
+  const powerAutomateTotal = perAgent.reduce((s,x)=>s + x.calc.direct.powerAutomateCost + x.calc.direct.premiumConnectorCost, 0);
+
+  const grandTotal = prepaidCost + overageCost + dataverseAddonCost + azureOpenAITotal + powerAutomateTotal;
+
+  const aiBuilderWarning = state.agents.some(a => a.aiBuilder);
+
+  return {
+    perAgent, totalCredits, totalGB, freeGB, billableGB, dataverseAddonCost,
+    packsRecommended, packsPurchased, purchasedCapacity, overageCredits, overageCost,
+    prepaidCost, utilizationPct, azureOpenAITotal, powerAutomateTotal, grandTotal, aiBuilderWarning
+  };
+}
+
+// ---------- Rendu ----------
+
+function tip(text){
+  return `<span class="tip" tabindex="0" data-tip="${escapeHtml(text)}">?</span>`;
+}
+
+function categoryLabel(cat){
+  return { licensed: 'Utilisateurs internes AVEC licence M365 Copilot',
+           unlicensed: 'Utilisateurs internes SANS licence M365 Copilot',
+           external: 'Utilisateurs externes / anonymes' }[cat];
+}
+
+function renderCategoryBlock(agent, cat){
+  const f = agent.freq[cat];
+  const u = agent.users[cat];
+  const userTip = cat === 'licensed'
+    ? "Vérifiable dans Microsoft 365 admin center → Utilisateurs → Licences actives, filtrer sur \"Microsoft 365 Copilot\"."
+    : (cat === 'unlicensed'
+        ? "Employés ou collaborateurs internes qui utilisent l'agent mais n'ont pas de licence M365 Copilot individuelle."
+        : "Utilisateurs grand public sans compte Microsoft (ex: visiteurs d'un site web, clients).");
+  return `
+  <div class="category-block" data-cat="${cat}">
+    <h4>${categoryLabel(cat)}</h4>
+    <div class="grid3">
+      <div class="field">
+        <label>Nombre d'utilisateurs ${tip(userTip)}</label>
+        <input type="number" min="0" step="1" data-field="users.${cat}" value="${u}">
+      </div>
+      <div class="field">
+        <label>Conversations / utilisateur / mois ${tip("Si l'agent n'est pas encore lancé, estimer à partir du trafic actuel d'un canal équivalent (ex: nombre de tickets support/mois, ou visites sur la page où l'agent sera intégré).")}</label>
+        <input type="number" min="0" step="0.1" data-field="freq.${cat}.conv" value="${f.conv}">
+      </div>
+      <div class="field">
+        <label>Tours / messages par conversation ${tip("Nombre moyen d'allers-retours (tours) dans une conversation type. 2 à 3 par défaut.")}</label>
+        <input type="number" min="0" step="0.5" data-field="freq.${cat}.turns" value="${f.turns}">
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAgentCard(agent){
+  const c = agent.composition;
+  const ao = agent.azureOpenAI;
+  const pc = agent.premiumConnectors;
+  return `
+  <div class="card agent-card" data-id="${agent.id}">
+    <div class="agent-head">
+      <button class="collapse-toggle" data-action="toggle-collapse" title="Réduire / déplier">${agent.collapsed ? '▸' : '▾'}</button>
+      <input type="text" class="name-input" data-field="name" value="${escapeHtml(agent.name)}" placeholder="Nom du cas d'usage">
+      <div class="agent-badges">
+        <span class="badge">Crédits <b id="badge-credits-${agent.id}">–</b></span>
+        <span class="badge">Coût <b id="badge-cost-${agent.id}">–</b></span>
+      </div>
+      <div class="agent-actions">
+        <button class="btn-ghost btn-sm" data-action="duplicate">⧉ Dupliquer</button>
+        <button class="btn-danger btn-sm" data-action="delete">🗑 Supprimer</button>
+      </div>
+    </div>
+    <div class="agent-body ${agent.collapsed ? 'hidden' : ''}" id="body-${agent.id}">
+
+      <div class="section">
+        <div class="section-title">1–2. Population, licences &amp; fréquence d'usage</div>
+        ${renderCategoryBlock(agent,'licensed')}
+        ${renderCategoryBlock(agent,'unlicensed')}
+        ${renderCategoryBlock(agent,'external')}
+      </div>
+
+      <div class="section">
+        <div class="section-title">3. Composition d'une interaction moyenne ${tip("Ces coûts s'additionnent (ne sont pas exclusifs) : une même interaction peut être générative, ancrée sur Graph, et déclencher des actions.")}</div>
+        <div class="grid3">
+          <div class="field">
+            <label>% réponses classiques / statiques (1 crédit) ${tip("Réponse basée sur un flux de conversation prédéfini ou une FAQ statique, sans appel à un modèle génératif.")}</label>
+            <input type="number" min="0" max="100" step="1" data-field="composition.pctStatic" value="${c.pctStatic}">
+          </div>
+          <div class="field">
+            <label>% réponses génératives IA (2 crédits) ${tip("Réponse composée dynamiquement par un modèle de langage à partir du contexte ou d'une base de connaissances.")}</label>
+            <input type="number" min="0" max="100" step="1" data-field="composition.pctGenerative" value="${c.pctGenerative}">
+          </div>
+          <div class="field">
+            <label>Actions autonomes / interaction (25 crédits chacune) ${tip("Déclencheurs automatiques, appels à des connecteurs Power Platform, ou flux Power Automate lancés par l'agent. Toujours facturées, même pour les utilisateurs licenciés M365 Copilot. Vérifiable dans Copilot Studio → panneau de test → \"activity map\".")}</label>
+            <input type="number" min="0" step="0.05" data-field="composition.actionsPerInteraction" value="${c.actionsPerInteraction}">
+          </div>
+        </div>
+        <div class="field checkbox-field" style="margin-top:10px;">
+          <input type="checkbox" id="ground-${agent.id}" data-field="composition.groundingEnabled" ${c.groundingEnabled ? 'checked':''}>
+          <label for="ground-${agent.id}">Cet agent répond à partir de documents SharePoint/OneDrive ou de connecteurs Graph du tenant ${tip("Vérifiable dans Copilot Studio → ouvrir l'agent → onglet \"Knowledge\" → regarder si SharePoint, OneDrive ou \"Graph connectors\" figure parmi les sources. Si le projet n'est pas encore construit, demander à l'équipe technique.")}</label>
+        </div>
+        <div class="conditional-block ${c.groundingEnabled ? '' : 'hidden'}" id="grounding-fields-${agent.id}">
+          <div class="field" style="max-width:260px;">
+            <label>Crédits moyens par requête ancrée</label>
+            <input type="number" min="0" step="1" data-field="composition.groundingCredits" value="${c.groundingCredits}">
+          </div>
+          <p class="note">Appliqué aux réponses génératives estimées ci-dessus (les coûts d'ancrage s'ajoutent au coût de la réponse générative).</p>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">4. Stockage &amp; plateforme</div>
+        <div class="grid2">
+          <div class="field">
+            <label>Volume Dataverse estimé (Go) ${tip("Vérifiable dans Power Platform admin center → environnement → Ressources → Stockage. 15 Go inclus par défaut au niveau du tenant, partagés entre tous les agents ; au-delà, coût d'add-on.")}</label>
+            <input type="number" min="0" step="0.1" data-field="dataverseGB" value="${agent.dataverseGB}">
+          </div>
+          <div class="field checkbox-field">
+            <input type="checkbox" id="aib-${agent.id}" data-field="aiBuilder" ${agent.aiBuilder ? 'checked':''}>
+            <label for="aib-${agent.id}">Utilisation d'AI Builder ${tip("Les crédits AI Builder gratuits inclus disparaissent en novembre 2026 — si utilisé, prévoir un budget de crédits Copilot supplémentaire après cette date.")}</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">5. Fonctionnalités additionnelles à coût séparé</div>
+        <div class="field checkbox-field">
+          <input type="checkbox" id="ao-${agent.id}" data-field="azureOpenAI.enabled" ${ao.enabled ? 'checked':''}>
+          <label for="ao-${agent.id}">Appels Azure OpenAI custom hors Copilot Studio natif ${tip("Uniquement si l'agent appelle directement un déploiement Azure OpenAI en dehors du moteur natif de Copilot Studio — à confirmer avec l'équipe technique/dev.")}</label>
+        </div>
+        <div class="conditional-block ${ao.enabled ? '' : 'hidden'}" id="openai-fields-${agent.id}">
+          <div class="grid2">
+            <div class="field">
+              <label>Tokens estimés / mois</label>
+              <input type="number" min="0" step="1000" data-field="azureOpenAI.tokens" value="${ao.tokens}">
+            </div>
+            <div class="field">
+              <label>Coût estimé (${currencySymbol()}/mois)</label>
+              <input type="number" min="0" step="1" data-field="azureOpenAI.cost" value="${ao.cost}">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid2" style="margin-top:10px;">
+          <div class="field">
+            <label>Runs Power Automate déclenchés / mois ${tip("Facturé séparément selon la licence Power Automate de l'organisation, vérifiable dans Power Platform admin center → Analytics → Power Automate.")}</label>
+            <input type="number" min="0" step="1" data-field="powerAutomate.runs" value="${agent.powerAutomate.runs}">
+          </div>
+          <div class="field checkbox-field">
+            <input type="checkbox" id="pc-${agent.id}" data-field="premiumConnectors.enabled" ${pc.enabled ? 'checked':''}>
+            <label for="pc-${agent.id}">Connecteurs premium/custom Power Platform</label>
+          </div>
+        </div>
+        <div class="conditional-block ${pc.enabled ? '' : 'hidden'}" id="premium-fields-${agent.id}">
+          <div class="field" style="max-width:260px;">
+            <label>Coût mensuel additionnel estimé (${currencySymbol()})</label>
+            <input type="number" min="0" step="1" data-field="premiumConnectors.extraCost" value="${pc.extraCost}">
+          </div>
+        </div>
+      </div>
+
+      <div class="subtotal-row">
+        <div>Crédits Copilot / mois<b id="sub-credits-${agent.id}">–</b></div>
+        <div>Coût crédits (tarif pack)<b id="sub-creditcost-${agent.id}">–</b></div>
+        <div>Coûts directs annexes<b id="sub-direct-${agent.id}">–</b></div>
+        <div>Coût total estimé<b id="sub-total-${agent.id}">–</b></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function getByPath(obj, path){
+  return path.split('.').reduce((o,k)=> (o == null ? o : o[k]), obj);
+}
+function setByPath(obj, path, value){
+  const keys = path.split('.');
+  let cur = obj;
+  for(let i=0;i<keys.length-1;i++){ cur = cur[keys[i]]; }
+  cur[keys[keys.length-1]] = value;
+}
+
+function renderAllAgents(){
+  const container = document.getElementById('agents-container');
+  container.innerHTML = state.agents.map(renderAgentCard).join('');
+}
+
+function updateAgentBadgesAndSubtotals(agent){
+  const calc = computeAgentFull(agent, state.settings);
+  const creditsEl = document.getElementById(`badge-credits-${agent.id}`);
+  const costEl = document.getElementById(`badge-cost-${agent.id}`);
+  if(creditsEl) creditsEl.textContent = fmtCredits(calc.totalCredits);
+  if(costEl) costEl.textContent = fmtMoney(calc.totalCost);
+
+  const s1 = document.getElementById(`sub-credits-${agent.id}`);
+  const s2 = document.getElementById(`sub-creditcost-${agent.id}`);
+  const s3 = document.getElementById(`sub-direct-${agent.id}`);
+  const s4 = document.getElementById(`sub-total-${agent.id}`);
+  if(s1) s1.textContent = fmtCredits(calc.totalCredits);
+  if(s2) s2.textContent = fmtMoney(calc.creditCost);
+  if(s3) s3.textContent = fmtMoney(calc.direct.azureOpenAICost + calc.direct.powerAutomateCost + calc.direct.premiumConnectorCost);
+  if(s4) s4.textContent = fmtMoney(calc.totalCost);
+  return calc;
+}
+
+function renderSummary(){
+  const g = computeGlobal();
+  const tbody = document.getElementById('summary-tbody');
+  tbody.innerHTML = g.perAgent.map(({agent, calc})=>{
+    const pct = g.totalCredits > 0 ? (calc.totalCredits / g.totalCredits * 100) : 0;
+    return `<tr>
+      <td>${escapeHtml(agent.name || 'Sans nom')}</td>
+      <td>${fmtCredits(calc.totalCredits)}</td>
+      <td>${fmtPct(pct)}</td>
+      <td>${fmtMoney(calc.totalCost)}</td>
+    </tr>`;
+  }).join('') + `<tr>
+      <td>Total</td>
+      <td>${fmtCredits(g.totalCredits)}</td>
+      <td>100 %</td>
+      <td>${fmtMoney(g.grandTotal)}</td>
+    </tr>`;
+
+  document.getElementById('packs-recommended-note').textContent =
+    `Nombre recommandé pour couvrir l'usage projeté sans dépassement : ${g.packsRecommended} pack(s).`;
+
+  document.getElementById('tot-credits').textContent = fmtCredits(g.totalCredits);
+  document.getElementById('tot-packs-reco').textContent = g.packsRecommended;
+  document.getElementById('tot-prepaid').textContent = fmtMoney(g.prepaidCost);
+  document.getElementById('tot-overage-credits').textContent = fmtCredits(g.overageCredits);
+  document.getElementById('tot-overage-cost').textContent = fmtMoney(g.overageCost);
+  document.getElementById('tot-dataverse').textContent = fmtMoney(g.dataverseAddonCost) + ` (${g.billableGB.toFixed(1)} Go facturés / ${g.totalGB.toFixed(1)} Go, quota gratuit ${g.freeGB} Go)`;
+  document.getElementById('tot-openai').textContent = fmtMoney(g.azureOpenAITotal);
+  document.getElementById('tot-pa').textContent = fmtMoney(g.powerAutomateTotal);
+  document.getElementById('tot-grand').textContent = fmtMoney(g.grandTotal);
+
+  const progress = document.getElementById('usage-progress');
+  const pctCapped = Math.min(100, g.utilizationPct);
+  progress.style.width = pctCapped + '%';
+  progress.classList.toggle('over', g.overageCredits > 0);
+  document.getElementById('usage-progress-label').textContent =
+    `Taux d'utilisation de la capacité achetée : ${fmtPct(g.utilizationPct)} (${fmtCredits(Math.min(g.totalCredits,g.purchasedCapacity))} / ${fmtCredits(g.purchasedCapacity)} crédits). Rappel : les crédits prépayés non utilisés ne se reportent pas au mois suivant.`;
+
+  const warnZone = document.getElementById('warning-zone');
+  let warnings = '';
+  if(g.overageCredits > 0){
+    warnings += `<div class="warning-banner">⚠️ <div><b>Dépassement de capacité :</b> l'usage projeté (${fmtCredits(g.totalCredits)} crédits) dépasse les ${g.packsPurchased} pack(s) souscrit(s) (${fmtCredits(g.purchasedCapacity)} crédits) de ${fmtCredits(g.overageCredits)} crédits, soit un coût PAYG additionnel estimé de ${fmtMoney(g.overageCost)}.</div></div>`;
+  } else {
+    warnings += `<div class="ok-banner">✅ La capacité achetée couvre l'usage projeté (marge de ${fmtCredits(g.purchasedCapacity - g.totalCredits)} crédits).</div>`;
+  }
+  if(g.aiBuilderWarning){
+    warnings += `<div class="warning-banner">⚠️ <div>Au moins un agent utilise <b>AI Builder</b> : les crédits gratuits inclus disparaissent en <b>novembre 2026</b>. Prévoir un budget de Copilot Credits supplémentaire à partir de cette date.</div></div>`;
+  }
+  warnZone.innerHTML = warnings;
+
+  // sticky bar
+  document.getElementById('bar-credits').textContent = fmtCredits(g.totalCredits);
+  document.getElementById('bar-util').textContent = fmtPct(g.utilizationPct);
+  document.getElementById('bar-packs').textContent = `${g.packsPurchased} (reco. ${g.packsRecommended})`;
+  document.getElementById('bar-total').textContent = fmtMoney(g.grandTotal);
+}
+
+function refreshAll(){
+  state.agents.forEach(updateAgentBadgesAndSubtotals);
+  renderSummary();
+  scheduleSave();
+}
+
+function renderSettingsInputs(){
+  const s = state.settings;
+  document.getElementById('set-currency').value = s.currency;
+  document.getElementById('set-packPrice').value = s.packPrice;
+  document.getElementById('set-creditsPerPack').value = s.creditsPerPack;
+  document.getElementById('set-paygRate').value = s.paygRate;
+  document.getElementById('set-dataverseFreeGB').value = s.dataverseFreeGB;
+  document.getElementById('set-dataverseCostPerGB').value = s.dataverseCostPerGB;
+  document.getElementById('set-paCostPerRun').value = s.paCostPerRun;
+  document.getElementById('set-wStatic').value = s.weights.static;
+  document.getElementById('set-wGenerative').value = s.weights.generative;
+  document.getElementById('set-wAction').value = s.weights.action;
+  document.getElementById('set-packsPurchased').value = s.packsPurchased === null ? '' : s.packsPurchased;
+}
+
+// ---------- Événements ----------
+
+document.getElementById('agents-container').addEventListener('input', (e)=>{
+  const t = e.target;
+  const field = t.dataset.field;
+  if(!field) return;
+  const cardEl = t.closest('.agent-card');
+  const id = cardEl.dataset.id;
+  const agent = state.agents.find(a=>a.id===id);
+  if(!agent) return;
+
+  let value;
+  if(t.type === 'checkbox') value = t.checked;
+  else if(t.type === 'number') value = t.value === '' ? 0 : num(t.value);
+  else value = t.value;
+
+  setByPath(agent, field, value);
+  updateAgentBadgesAndSubtotals(agent);
+  renderSummary();
+  scheduleSave();
+});
+
+document.getElementById('agents-container').addEventListener('change', (e)=>{
+  const t = e.target;
+  const field = t.dataset.field;
+  if(!field || t.type !== 'checkbox') return;
+  const cardEl = t.closest('.agent-card');
+  const id = cardEl.dataset.id;
+  // toggle visibility of conditional blocks
+  if(field === 'composition.groundingEnabled'){
+    document.getElementById(`grounding-fields-${id}`).classList.toggle('hidden', !t.checked);
+  } else if(field === 'azureOpenAI.enabled'){
+    document.getElementById(`openai-fields-${id}`).classList.toggle('hidden', !t.checked);
+  } else if(field === 'premiumConnectors.enabled'){
+    document.getElementById(`premium-fields-${id}`).classList.toggle('hidden', !t.checked);
+  }
+});
+
+document.getElementById('agents-container').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const cardEl = btn.closest('.agent-card');
+  const id = cardEl.dataset.id;
+  const idx = state.agents.findIndex(a=>a.id===id);
+  if(idx === -1) return;
+  const action = btn.dataset.action;
+
+  if(action === 'toggle-collapse'){
+    state.agents[idx].collapsed = !state.agents[idx].collapsed;
+    document.getElementById(`body-${id}`).classList.toggle('hidden', state.agents[idx].collapsed);
+    btn.textContent = state.agents[idx].collapsed ? '▸' : '▾';
+    scheduleSave();
+  } else if(action === 'delete'){
+    if(state.agents.length <= 1){
+      alert("Il doit rester au moins un cas d'usage.");
+      return;
+    }
+    if(confirm(`Supprimer le cas d'usage "${state.agents[idx].name}" ?`)){
+      state.agents.splice(idx,1);
+      renderAllAgents();
+      refreshAll();
+    }
+  } else if(action === 'duplicate'){
+    const copy = JSON.parse(JSON.stringify(state.agents[idx]));
+    copy.id = uid();
+    copy.name = copy.name + ' (copie)';
+    state.agents.splice(idx+1, 0, copy);
+    renderAllAgents();
+    refreshAll();
+  }
+});
+
+document.getElementById('btn-add-agent').addEventListener('click', ()=>{
+  const agent = defaultAgent(`Nouveau cas d'usage ${state.agents.length+1}`);
+  state.agents.push(agent);
+  renderAllAgents();
+  refreshAll();
+  const el = document.querySelector(`.agent-card[data-id="${agent.id}"]`);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+});
+
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  if(confirm("Réinitialiser tous les paramètres et cas d'usage aux valeurs par défaut ? Cette action est irréversible.")){
+    state = defaultState();
+    renderSettingsInputs();
+    renderAllAgents();
+    refreshAll();
+  }
+});
+
+document.getElementById('btn-export').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'copilot-studio-cost-calculator-export.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('import-file').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!parsed || !parsed.settings || !Array.isArray(parsed.agents)) throw new Error("Format invalide");
+      state = parsed;
+      renderSettingsInputs();
+      renderAllAgents();
+      refreshAll();
+    }catch(err){
+      alert("Fichier invalide : " + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+const settingsBindings = [
+  ['set-currency','currency', v=>v],
+  ['set-packPrice','packPrice', num],
+  ['set-creditsPerPack','creditsPerPack', num],
+  ['set-paygRate','paygRate', num],
+  ['set-dataverseFreeGB','dataverseFreeGB', num],
+  ['set-dataverseCostPerGB','dataverseCostPerGB', num],
+  ['set-paCostPerRun','paCostPerRun', num],
+];
+settingsBindings.forEach(([elId, key, conv])=>{
+  document.getElementById(elId).addEventListener('input', (e)=>{
+    state.settings[key] = conv(e.target.value);
+    if(key === 'currency'){
+      renderAllAgents(); // refresh currency labels inside cards
+    }
+    refreshAll();
+  });
+});
+
+['set-wStatic','set-wGenerative','set-wAction'].forEach((elId)=>{
+  const map = { 'set-wStatic':'static', 'set-wGenerative':'generative', 'set-wAction':'action' };
+  document.getElementById(elId).addEventListener('input', (e)=>{
+    state.settings.weights[map[elId]] = num(e.target.value);
+    refreshAll();
+  });
+});
+
+document.getElementById('set-packsPurchased').addEventListener('input', (e)=>{
+  state.settings.packsPurchased = e.target.value === '' ? null : num(e.target.value);
+  refreshAll();
+});
+
+// ---------- Init ----------
+renderSettingsInputs();
+renderAllAgents();
+refreshAll();
+
+})();
+</script>
+</body>
+</html>
