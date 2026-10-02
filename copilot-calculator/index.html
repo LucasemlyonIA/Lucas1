@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculateur de coûts Copilot Studio</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Calculateur de coûts — agents Copilot Studio</h1>
+    <p class="subtitle">Modèle pay-as-you-go · estimation mensuelle et annuelle en euros</p>
+  </header>
+
+  <div class="layout">
+    <div class="inputs">
+      <section class="card">
+        <h2>1. Utilisateurs et usage</h2>
+        <div class="grid">
+          <label>Nombre total d'utilisateurs
+            <input type="number" id="totalUsers" min="0" step="1">
+          </label>
+          <label>dont licence Microsoft 365 Copilot
+            <input type="number" id="licensedUsers" min="0" step="1">
+            <small id="licenseHint">Ces utilisateurs ne consomment pas de crédits.</small>
+          </label>
+          <label>Interactions / utilisateur / mois
+            <input type="number" id="interactions" min="0" step="1">
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>2. Répartition des interactions</h2>
+          <span id="pctBadge" class="badge">100 %</span>
+        </div>
+        <table class="types">
+          <thead><tr><th>Type de réponse</th><th>Crédits</th><th>Part (%)</th></tr></thead>
+          <tbody id="typesBody"></tbody>
+        </table>
+        <div id="pctWarning" class="warning" hidden>
+          La somme des parts doit être égale à 100 %.
+          <button type="button" id="normalize">Normaliser à 100 %</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>3. Ressources Azure additionnelles</h2>
+          <button type="button" id="addAzure" class="secondary">+ Ajouter</button>
+        </div>
+        <p class="help">Coût propre de chaque ressource Azure sollicitée (Search, SQL, Functions…), facturé séparément selon la tarification Azure. Saisir le montant mensuel en euros.</p>
+        <div id="azureList"></div>
+        <p class="empty" id="azureEmpty">Aucune ressource ajoutée.</p>
+      </section>
+
+      <section class="card">
+        <h2>4. Devise et tarif du crédit</h2>
+        <div class="grid">
+          <label>Taux de conversion USD → EUR
+            <input type="number" id="usdToEur" min="0" step="0.0001">
+            <small>1 $ = <span id="fxShow"></span> €. À mettre à jour selon le taux du jour.</small>
+          </label>
+          <label>Prix du crédit (USD)
+            <input type="number" id="creditPrice" min="0" step="0.001">
+            <small>0,01 $ en pay-as-you-go.</small>
+          </label>
+        </div>
+        <button type="button" id="reset" class="secondary">Réinitialiser les valeurs</button>
+      </section>
+    </div>
+
+    <aside class="results">
+      <section class="card sticky">
+        <h2>Budget estimé</h2>
+        <div class="kpis">
+          <div class="kpi"><span>Mensuel</span><strong id="monthly">—</strong></div>
+          <div class="kpi main"><span>Annuel</span><strong id="annual">—</strong></div>
+        </div>
+
+        <table class="breakdown">
+          <thead><tr><th>Poste</th><th>Crédits / mois</th><th>€ / mois</th></tr></thead>
+          <tbody id="breakdownBody"></tbody>
+          <tfoot id="breakdownFoot"></tfoot>
+        </table>
+
+        <dl class="stats">
+          <div><dt>Utilisateurs facturés</dt><dd id="sBillable"></dd></div>
+          <div><dt>Interactions facturées / mois</dt><dd id="sInteractions"></dd></div>
+          <div><dt>Crédits moyens / interaction</dt><dd id="sAvg"></dd></div>
+          <div><dt>Coût / utilisateur facturé / mois</dt><dd id="sPerUser"></dd></div>
+          <div><dt>Coût / interaction</dt><dd id="sPerInter"></dd></div>
+        </dl>
+        <button type="button" id="exportCsv" class="secondary">Exporter en CSV</button>
+      </section>
+    </aside>
+  </div>
+
+  <footer>
+    <p>Tarifs en crédits Copilot : réponse classique 1, générative 2, action d'agent 5, appel de ressource Azure 5, grounding Microsoft Graph 10. Chaque interaction est comptée dans une seule catégorie selon la répartition saisie. Seuls les utilisateurs sans licence Microsoft 365 Copilot consomment des crédits. Estimation indicative : vérifier les tarifs en vigueur sur le site Microsoft.</p>
+  </footer>
+</div>
+<script src="calc.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
