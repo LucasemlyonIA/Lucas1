@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculateur de coûts Copilot Studio</title>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--text:#1c2430;--muted:#667085;--line:#e3e8ef;--accent:#4f46e5;--accent-soft:#eef0ff;--warn:#b54708;--warn-bg:#fff4e5;--ok:#067647;--ok-bg:#e7f6ee}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1420;--card:#171d2c;--text:#e8ecf4;--muted:#98a2b3;--line:#2a3347;--accent:#8b87ff;--accent-soft:#232a48;--warn:#fdb022;--warn-bg:#3a2b10;--ok:#47cd89;--ok-bg:#12332a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.page{max-width:1180px;margin:0 auto;padding:24px 16px 40px}
+h1{font-size:1.5rem;margin:0}h2{font-size:1.05rem;margin:0 0 12px}
+.subtitle{color:var(--muted);margin:4px 0 20px}
+.layout{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+.sticky{position:sticky;top:16px}
+@media (max-width:900px){.sticky{position:static}}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
+.card-head h2{margin:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.88rem}
+small,.help,.empty{color:var(--muted);font-weight:400;font-size:.82rem}
+.help{margin:0 0 10px}
+input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);width:100%}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+input.invalid{border-color:var(--warn)}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;padding:7px 12px}
+button.secondary{background:transparent;color:var(--accent)}
+button:hover{opacity:.9}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);font-size:.9rem}
+th{color:var(--muted);font-weight:600;font-size:.8rem}
+td.num,th.num,.breakdown td:not(:first-child),.breakdown th:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+.types input{width:90px;text-align:right}
+.badge{background:var(--ok-bg);color:var(--ok);border-radius:99px;padding:2px 10px;font-size:.82rem;font-weight:600}
+.badge.bad{background:var(--warn-bg);color:var(--warn)}
+.warning{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 12px;margin-top:10px;font-size:.88rem;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.warning button{background:var(--warn);border-color:var(--warn);color:var(--warn-bg)}
+.azure-row{display:grid;grid-template-columns:1fr 140px auto;gap:8px;margin-bottom:8px}
+.azure-row button{background:transparent;color:var(--warn);border-color:var(--line)}
+@media (max-width:480px){.azure-row{grid-template-columns:1fr 1fr}.azure-row button{grid-column:1/-1}}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.kpi{background:var(--bg);border-radius:10px;padding:12px}
+.kpi.main{background:var(--accent-soft)}
+.kpi span{display:block;color:var(--muted);font-size:.82rem}
+.kpi strong{font-size:1.45rem;font-variant-numeric:tabular-nums;word-break:break-word}
+.breakdown{margin-bottom:12px}
+.breakdown tfoot td{font-weight:700;border-bottom:0}
+.stats{margin:0 0 14px}
+.stats div{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:.88rem}
+.stats dt{color:var(--muted)}.stats dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}
+footer{color:var(--muted);font-size:.8rem;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Calculateur de coûts — agents Copilot Studio</h1>
+    <p class="subtitle">Modèle pay-as-you-go · estimation mensuelle et annuelle en euros</p>
+  </header>
+
+  <div class="layout">
+    <div class="inputs">
+      <section class="card">
+        <h2>1. Utilisateurs et usage</h2>
+        <div class="grid">
+          <label>Nombre total d'utilisateurs
+            <input type="number" id="totalUsers" min="0" step="1">
+          </label>
+          <label>dont licence Microsoft 365 Copilot
+            <input type="number" id="licensedUsers" min="0" step="1">
+            <small id="licenseHint">Ces utilisateurs ne consomment pas de crédits.</small>
+          </label>
+          <label>Interactions / utilisateur / mois
+            <input type="number" id="interactions" min="0" step="1">
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>2. Répartition des interactions</h2>
+          <span id="pctBadge" class="badge">100 %</span>
+        </div>
+        <table class="types">
+          <thead><tr><th>Type de réponse</th><th>Crédits</th><th>Part (%)</th></tr></thead>
+          <tbody id="typesBody"></tbody>
+        </table>
+        <div id="pctWarning" class="warning" hidden>
+          La somme des parts doit être égale à 100 %.
+          <button type="button" id="normalize">Normaliser à 100 %</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>3. Ressources Azure additionnelles</h2>
+          <button type="button" id="addAzure" class="secondary">+ Ajouter</button>
+        </div>
+        <p class="help">Coût propre de chaque ressource Azure sollicitée (Search, SQL, Functions…), facturé séparément selon la tarification Azure. Saisir le montant mensuel en euros.</p>
+        <div id="azureList"></div>
+        <p class="empty" id="azureEmpty">Aucune ressource ajoutée.</p>
+      </section>
+
+      <section class="card">
+        <h2>4. Devise et tarif du crédit</h2>
+        <div class="grid">
+          <label>Taux de conversion USD → EUR
+            <input type="number" id="usdToEur" min="0" step="0.0001">
+            <small>1 $ = <span id="fxShow"></span> €. À mettre à jour selon le taux du jour.</small>
+          </label>
+          <label>Prix du crédit (USD)
+            <input type="number" id="creditPrice" min="0" step="0.001">
+            <small>0,01 $ en pay-as-you-go.</small>
+          </label>
+        </div>
+        <button type="button" id="reset" class="secondary">Réinitialiser les valeurs</button>
+      </section>
+    </div>
+
+    <aside class="results">
+      <section class="card sticky">
+        <h2>Budget estimé</h2>
+        <div class="kpis">
+          <div class="kpi"><span>Mensuel</span><strong id="monthly">—</strong></div>
+          <div class="kpi main"><span>Annuel</span><strong id="annual">—</strong></div>
+        </div>
+
+        <table class="breakdown">
+          <thead><tr><th>Poste</th><th>Crédits / mois</th><th>€ / mois</th></tr></thead>
+          <tbody id="breakdownBody"></tbody>
+          <tfoot id="breakdownFoot"></tfoot>
+        </table>
+
+        <dl class="stats">
+          <div><dt>Utilisateurs facturés</dt><dd id="sBillable"></dd></div>
+          <div><dt>Interactions facturées / mois</dt><dd id="sInteractions"></dd></div>
+          <div><dt>Crédits moyens / interaction</dt><dd id="sAvg"></dd></div>
+          <div><dt>Coût / utilisateur facturé / mois</dt><dd id="sPerUser"></dd></div>
+          <div><dt>Coût / interaction</dt><dd id="sPerInter"></dd></div>
+        </dl>
+        <button type="button" id="exportCsv" class="secondary">Exporter en CSV</button>
+      </section>
+    </aside>
+  </div>
+
+  <footer>
+    <p>Tarifs en crédits Copilot : réponse classique 1, générative 2, action d'agent 5, appel de ressource Azure 5, grounding Microsoft Graph 10. Chaque interaction est comptée dans une seule catégorie selon la répartition saisie. Seuls les utilisateurs sans licence Microsoft 365 Copilot consomment des crédits. Estimation indicative : vérifier les tarifs en vigueur sur le site Microsoft.</p>
+  </footer>
+</div>
+<script>
+/* Logique de calcul pure (utilisable dans le navigateur et sous Node pour les tests). */
+(function (root) {
+  "use strict";
+
+  // Tarifs officiels Microsoft en crédits Copilot (Copilot Studio, pay-as-you-go).
+  const DEFAULT_TYPES = [
+    { id: "classic", label: "Réponse classique", credits: 1, pct: 40 },
+    { id: "generative", label: "Réponse générative", credits: 2, pct: 40 },
+    { id: "action", label: "Action d'agent", credits: 5, pct: 10 },
+    { id: "azure", label: "Appel de ressource Azure", credits: 5, pct: 5 },
+    { id: "graph", label: "Grounding Microsoft Graph", credits: 10, pct: 5 },
+  ];
+  const DEFAULTS = {
+    totalUsers: 1000,
+    licensedUsers: 200,
+    interactions: 30,
+    creditPriceUsd: 0.01,
+    usdToEur: 0.92,
+    types: DEFAULT_TYPES,
+  };
+
+  const num = (v) => (Number.isFinite(+v) && +v > 0 ? +v : 0);
+
+  /**
+   * @param {object} p
+   * @param {number} p.totalUsers
+   * @param {number} p.licensedUsers  utilisateurs M365 Copilot (0 crédit)
+   * @param {number} p.interactions   interactions / utilisateur / mois
+   * @param {Array<{id,label,credits,pct}>} p.types  pct en % (somme attendue = 100)
+   * @param {number} p.creditPriceUsd
+   * @param {number} p.usdToEur
+   * @param {Array<{name,monthlyEur}>} [p.azureResources]  coûts Azure séparés, en EUR / mois
+   */
+  function compute(p) {
+    const total = num(p.totalUsers);
+    const licensed = Math.min(num(p.licensedUsers), total);
+    const billable = total - licensed;
+    const perUser = num(p.interactions);
+    const price = num(p.creditPriceUsd);
+    const fx = num(p.usdToEur);
+
+    const pctSum = p.types.reduce((s, t) => s + num(t.pct), 0);
+    const interactionsBilled = billable * perUser; // interactions des utilisateurs sans licence
+
+    const lines = p.types.map((t) => {
+      const share = num(t.pct) / 100;
+      const interactions = interactionsBilled * share;
+      const credits = interactions * num(t.credits);
+      const usd = credits * price;
+      return { id: t.id, label: t.label, pct: num(t.pct), unitCredits: num(t.credits), interactions, credits, usd, eur: usd * fx };
+    });
+
+    const credits = lines.reduce((s, l) => s + l.credits, 0);
+    const copilotUsd = credits * price;
+    const copilotEur = copilotUsd * fx;
+    const azureEur = (p.azureResources || []).reduce((s, r) => s + num(r.monthlyEur), 0);
+    const monthlyEur = copilotEur + azureEur;
+
+    return {
+      billableUsers: billable,
+      licensedUsers: licensed,
+      pctSum,
+      pctValid: Math.abs(pctSum - 100) < 1e-6,
+      interactionsBilled,
+      lines,
+      creditsMonthly: credits,
+      creditsAnnual: credits * 12,
+      copilotUsdMonthly: copilotUsd,
+      copilotEurMonthly: copilotEur,
+      copilotEurAnnual: copilotEur * 12,
+      azureEurMonthly: azureEur,
+      azureEurAnnual: azureEur * 12,
+      monthlyEur,
+      annualEur: monthlyEur * 12,
+      avgCreditsPerInteraction: interactionsBilled ? credits / interactionsBilled : 0,
+      costPerBillableUserEur: billable ? monthlyEur / billable : 0,
+      costPerInteractionEur: interactionsBilled ? monthlyEur / interactionsBilled : 0,
+    };
+  }
+
+  const api = { compute, DEFAULTS, DEFAULT_TYPES };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.CopilotCalc = api;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
+<script>
+(function () {
+  "use strict";
+  const { compute, DEFAULTS } = window.CopilotCalc;
+  const $ = (id) => document.getElementById(id);
+  const STORE = "copilot-calc-v1";
+
+  const state = JSON.parse(JSON.stringify(DEFAULTS));
+  state.azureResources = [];
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE));
+    if (saved && typeof saved === "object") {
+      for (const k of ["totalUsers", "licensedUsers", "interactions", "creditPriceUsd", "usdToEur"]) {
+        if (Number.isFinite(+saved[k])) state[k] = +saved[k];
+      }
+      if (Array.isArray(saved.types)) {
+        state.types.forEach((t) => {
+          const s = saved.types.find((x) => x.id === t.id);
+          if (s) { t.pct = +s.pct || 0; t.credits = Number.isFinite(+s.credits) ? +s.credits : t.credits; }
+        });
+      }
+      if (Array.isArray(saved.azureResources)) {
+        state.azureResources = saved.azureResources.map((r) => ({ name: String(r.name || ""), monthlyEur: +r.monthlyEur || 0 }));
+      }
+    }
+  } catch (e) { /* stockage indisponible : valeurs par défaut */ }
+
+  const fmtEur = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 2 });
+  const fmtInt = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
+  const fmtDec = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 });
+  const eur = (v) => fmtEur.format(v);
+
+  function persist() {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) { /* ignore */ }
+  }
+
+  // --- Construction des champs -------------------------------------------------
+  function bindNumber(id, key) {
+    const el = $(id);
+    el.value = state[key];
+    el.addEventListener("input", () => {
+      state[key] = el.value === "" ? 0 : Math.max(0, parseFloat(el.value) || 0);
+      render();
+    });
+  }
+  bindNumber("totalUsers", "totalUsers");
+  bindNumber("licensedUsers", "licensedUsers");
+  bindNumber("interactions", "interactions");
+  bindNumber("usdToEur", "usdToEur");
+  bindNumber("creditPrice", "creditPriceUsd");
+
+  const typesBody = $("typesBody");
+  state.types.forEach((t) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${t.label}</td><td>${t.credits}</td><td><input type="number" min="0" max="100" step="0.1" aria-label="Part ${t.label}"></td>`;
+    const input = tr.querySelector("input");
+    input.value = t.pct;
+    input.addEventListener("input", () => {
+      t.pct = input.value === "" ? 0 : Math.max(0, parseFloat(input.value) || 0);
+      render();
+    });
+    t._input = input;
+    typesBody.appendChild(tr);
+  });
+
+  $("normalize").addEventListener("click", () => {
+    const sum = state.types.reduce((s, t) => s + t.pct, 0);
+    if (sum <= 0) { state.types.forEach((t, i) => (t.pct = i === 0 ? 100 : 0)); }
+    else state.types.forEach((t) => (t.pct = Math.round((t.pct / sum) * 1000) / 10));
+    // corrige l'arrondi sur la plus grande part pour retomber exactement sur 100
+    const diff = Math.round((100 - state.types.reduce((s, t) => s + t.pct, 0)) * 10) / 10;
+    const big = state.types.reduce((a, b) => (b.pct > a.pct ? b : a));
+    big.pct = Math.round((big.pct + diff) * 10) / 10;
+    state.types.forEach((t) => (t._input.value = t.pct));
+    render();
+  });
+
+  // --- Ressources Azure ---------------------------------------------------------
+  function renderAzure() {
+    const list = $("azureList");
+    list.innerHTML = "";
+    state.azureResources.forEach((r, i) => {
+      const row = document.createElement("div");
+      row.className = "azure-row";
+      row.innerHTML = `<input type="text" placeholder="Nom de la ressource (ex. Azure AI Search)" aria-label="Nom">
+        <input type="number" min="0" step="0.01" placeholder="€ / mois" aria-label="Montant mensuel en euros">
+        <button type="button" aria-label="Supprimer">Supprimer</button>`;
+      const [name, amount] = row.querySelectorAll("input");
+      name.value = r.name; amount.value = r.monthlyEur || "";
+      name.addEventListener("input", () => { r.name = name.value; render(false); });
+      amount.addEventListener("input", () => { r.monthlyEur = Math.max(0, parseFloat(amount.value) || 0); render(false); });
+      row.querySelector("button").addEventListener("click", () => { state.azureResources.splice(i, 1); renderAzure(); render(); });
+      list.appendChild(row);
+    });
+    $("azureEmpty").hidden = state.azureResources.length > 0;
+  }
+  $("addAzure").addEventListener("click", () => {
+    state.azureResources.push({ name: "", monthlyEur: 0 });
+    renderAzure();
+    const inputs = $("azureList").querySelectorAll("input[type=text]");
+    inputs[inputs.length - 1].focus();
+    render();
+  });
+
+  $("reset").addEventListener("click", () => {
+    if (!confirm("Réinitialiser toutes les valeurs ?")) return;
+    try { localStorage.removeItem(STORE); } catch (e) { /* ignore */ }
+    location.reload();
+  });
+
+  // --- Rendu des résultats ------------------------------------------------------
+  let last;
+  function render() {
+    const r = (last = compute(state));
+    persist();
+
+    $("fxShow").textContent = fmtDec.format(state.usdToEur);
+    const over = state.licensedUsers > state.totalUsers;
+    $("licensedUsers").classList.toggle("invalid", over);
+    $("licenseHint").textContent = over
+      ? `Supérieur au total : limité à ${fmtInt.format(state.totalUsers)}.`
+      : "Ces utilisateurs ne consomment pas de crédits.";
+
+    const badge = $("pctBadge");
+    badge.textContent = `${fmtDec.format(r.pctSum)} %`;
+    badge.classList.toggle("bad", !r.pctValid);
+    $("pctWarning").hidden = r.pctValid;
+
+    $("monthly").textContent = eur(r.monthlyEur);
+    $("annual").textContent = eur(r.annualEur);
+
+    $("breakdownBody").innerHTML = r.lines.map((l) =>
+      `<tr><td>${l.label} <small>(${fmtDec.format(l.pct)} % × ${l.unitCredits} cr.)</small></td><td>${fmtInt.format(l.credits)}</td><td>${eur(l.eur)}</td></tr>`).join("");
+    $("breakdownFoot").innerHTML =
+      `<tr><td>Crédits Copilot (pay-as-you-go)</td><td>${fmtInt.format(r.creditsMonthly)}</td><td>${eur(r.copilotEurMonthly)}</td></tr>` +
+      `<tr><td>Ressources Azure additionnelles</td><td>—</td><td>${eur(r.azureEurMonthly)}</td></tr>` +
+      `<tr><td>Total mensuel</td><td></td><td>${eur(r.monthlyEur)}</td></tr>`;
+
+    $("sBillable").textContent = `${fmtInt.format(r.billableUsers)} / ${fmtInt.format(state.totalUsers)}`;
+    $("sInteractions").textContent = fmtInt.format(r.interactionsBilled);
+    $("sAvg").textContent = fmtDec.format(r.avgCreditsPerInteraction);
+    $("sPerUser").textContent = eur(r.costPerBillableUserEur);
+    $("sPerInter").textContent = fmtEur.format(r.costPerInteractionEur);
+  }
+
+  $("exportCsv").addEventListener("click", () => {
+    const r = last, q = (s) => `"${String(s).replace(/"/g, '""')}"`;
+    const rows = [["Poste", "Part %", "Crédits unitaires", "Interactions/mois", "Crédits/mois", "EUR/mois", "EUR/an"]];
+    r.lines.forEach((l) => rows.push([q(l.label), l.pct, l.unitCredits, Math.round(l.interactions), Math.round(l.credits), l.eur.toFixed(2), (l.eur * 12).toFixed(2)]));
+    state.azureResources.forEach((a) => rows.push([q("Azure : " + (a.name || "sans nom")), "", "", "", "", a.monthlyEur.toFixed(2), (a.monthlyEur * 12).toFixed(2)]));
+    rows.push([q("TOTAL"), "", "", "", Math.round(r.creditsMonthly), r.monthlyEur.toFixed(2), r.annualEur.toFixed(2)]);
+    rows.push([], [q("Taux USD->EUR"), state.usdToEur], [q("Prix du crédit (USD)"), state.creditPriceUsd]);
+    const blob = new Blob(["﻿" + rows.map((x) => x.join(";")).join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "estimation-copilot-studio.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  renderAzure();
+  render();
+})();
+</script>
+</body>
+</html>
